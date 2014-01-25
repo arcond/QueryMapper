@@ -69,7 +69,7 @@ namespace QueryMapper
                     return current[node];
             }
 
-            if(IsFromType(node.Type))
+            if (IsFromType(node.Type))
                 return Expression.Parameter(SwapFromToType(node.Type), node.Name);
 
             return base.VisitParameter(node);
@@ -142,6 +142,25 @@ namespace QueryMapper
                 {
                     if (IsFromType(arg))
                         return true;
+                    else if (arg != typeof(TTo))
+                    {
+                        var from = typeof(TFrom);
+                        foreach (var prop in from.GetProperties())
+                        {
+                            if (arg == prop.PropertyType) return true;
+                            else if (prop.PropertyType.IsGenericType)
+                                foreach (var a in prop.PropertyType.GetGenericArguments())
+                                    if (arg == a) return true;
+                        }
+
+                        foreach (var field in from.GetFields())
+                        {
+                            if (arg == field.FieldType) return true;
+                            else if (field.FieldType.IsGenericType)
+                                foreach (var a in field.FieldType.GetGenericArguments())
+                                    if (arg == a) return true;
+                        }
+                    }
                 }
             }
 

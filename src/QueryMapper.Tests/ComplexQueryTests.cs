@@ -13,7 +13,13 @@ namespace QueryMapper.Tests
         {
             public int CustomerId { get; set; }
             public string CustomerName { get; set; }
-            public int OrderCount { get; set; }
+            public List<OrderDto> Orders { get; set; }
+        }
+
+        public class OrderDto
+        {
+            public int OrderId { get; set; }
+            public DateTime OrderDate { get; set; }
         }
 
         public class OrderEntity
@@ -26,7 +32,7 @@ namespace QueryMapper.Tests
         {
             public int Id { get; set; }
             public string Name { get; set; }
-            public List<OrderEntity> Orders { get; set; }
+            public ICollection<OrderEntity> Orders { get; set; }
         }
 
         private List<OrderEntity> _orders;
@@ -84,7 +90,41 @@ namespace QueryMapper.Tests
             Mapper.CreateMap<CustomerDto, CustomerEntity>()
                 .ForMember(d => d.Id, d => d.MapFrom(s => s.CustomerId))
                 .ForMember(d => d.Name, d => d.MapFrom(s => s.CustomerName))
-                .ForMember(d => d.Orders, d => d.Ignore());
+                .ForMember(d => d.Orders, d => d.MapFrom(s => s.Orders));
+            Mapper.CreateMap<CustomerEntity, CustomerDto>()
+                .ForMember(d => d.CustomerId, d => d.MapFrom(s => s.Id))
+                .ForMember(d => d.CustomerName, d => d.MapFrom(s => s.Name))
+                .ForMember(d => d.Orders, d => d.MapFrom(s => s.Orders.ToList()));
+            Mapper.CreateMap<OrderDto, OrderEntity>()
+                .ForMember(d => d.Id, d => d.MapFrom(s => s.OrderId))
+                .ForMember(d => d.OrderDate, d => d.MapFrom(s => s.OrderDate));
+            Mapper.CreateMap<OrderEntity, OrderDto>()
+                .ForMember(d => d.OrderId, d => d.MapFrom(s => s.Id))
+                .ForMember(d => d.OrderDate, d => d.MapFrom(s => s.OrderDate));
+
+            var orderDtos = new List<OrderDto>
+            {
+                new OrderDto
+                {
+                    OrderId = 1,
+                    OrderDate = DateTime.Now.AddDays(-10)
+                },
+                new OrderDto
+                {
+                    OrderId = 2,
+                    OrderDate = DateTime.Now.AddDays(-10)
+                },
+                new OrderDto
+                {
+                    OrderId = 3,
+                    OrderDate = DateTime.Now.AddDays(-10)
+                },
+                new OrderDto
+                {
+                    OrderId = 4,
+                    OrderDate = DateTime.Now.AddDays(-10)
+                }
+            };
 
             var customerDtos = new List<CustomerDto>
             {
@@ -92,24 +132,24 @@ namespace QueryMapper.Tests
                 {
                     CustomerId = 1,
                     CustomerName = "CustomerOne",
-                    OrderCount = 4
+                    Orders = orderDtos
                 },
                 new CustomerDto
                 {
                     CustomerId = 2,
                     CustomerName = "CustomerTwo",
-                    OrderCount = 4
+                    Orders = orderDtos
                 },
                 new CustomerDto
                 {
                     CustomerId = 3,
                     CustomerName = "CustomerThree",
-                    OrderCount = 0
+                    Orders = new List<OrderDto>()
                 }
             };
 
-            var query = customerDtos.AsQueryable().AsMappedQuery(
-                new DelegatedMapper<CustomerDto, CustomerEntity>(t => Mapper.Map<CustomerEntity>(t)))
+            var query = _customers.AsQueryable().AsMappedQuery(
+                new DelegatedMapper<CustomerEntity, CustomerDto>(t => Mapper.Map<CustomerDto>(t)))
                 .Where(q => q.Orders.Any());
 
             var result = query.ToArray();
